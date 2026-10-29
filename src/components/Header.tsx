@@ -41,7 +41,10 @@ export const Header: React.FC<HeaderProps> = ({
             aria-label="Return to Welcome"
           >
               <img
-                src="/assets/aistudio/Untitled_Design__15__76563b80.png"
+                src="/assets/brand/machan-logo.webp"
+                width={44}
+                height={44}
+                fetchPriority="high"
                 alt="Machan, Who Said That? Official Logo"
                 className="w-11 h-11 object-cover border-2 border-ink"
                 referrerPolicy="no-referrer"

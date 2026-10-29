@@ -1,34 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import waterSource from './sources/machan-water.html?raw';
-import { extractLogoInk } from './logoMask';
-
-const OFFICIAL_LOGO = '/assets/aistudio/Untitled_Design__15__76563b80.png';
-let cachedMask: Promise<string> | null = null;
-
-function officialLogoMask() {
-  if (cachedMask) return cachedMask;
-  cachedMask = (async () => {
-    const image = new Image();
-    image.src = OFFICIAL_LOGO;
-    await image.decode();
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 512;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('Canvas is unavailable.');
-    context.drawImage(image, 0, 0, 512, 512);
-    const ink = extractLogoInk(context.getImageData(0, 0, 512, 512).data, 512, 512);
-    context.putImageData(new ImageData(ink.data, 512, 512), 0, 0);
-    const mask = document.createElement('canvas');
-    mask.width = mask.height = 512;
-    const output = mask.getContext('2d');
-    if (!output) throw new Error('Canvas is unavailable.');
-    const scale = 400 / Math.max(ink.width, ink.height);
-    const width = ink.width * scale, height = ink.height * scale;
-    output.drawImage(canvas, ink.left, ink.top, ink.width, ink.height, (512 - width) / 2, (512 - height) / 2, width, height);
-    return mask.toDataURL('image/png');
-  })().catch(error => { cachedMask = null; throw error; });
-  return cachedMask;
-}
+import logoMask from './assets/machan-logo-mask.png?inline';
 
 export function WaterLogo() {
   const frame = useRef<HTMLIFrameElement>(null);
@@ -46,10 +18,7 @@ export function WaterLogo() {
   }, []);
 
   useEffect(() => {
-    if (reduced) return;
-    let active = true;
-    officialLogoMask().then(value => { if (active) setMask(value); }).catch(() => { if (active) setFailed(true); });
-    return () => { active = false; };
+    if (!reduced) setMask(logoMask);
   }, [reduced]);
 
   useEffect(() => {
@@ -70,7 +39,7 @@ export function WaterLogo() {
 
   return (
     <div className="water-logo-stage" role="img" aria-label="Machan, Who Said That? Official Logo" data-water-state={ready ? 'ready' : reduced ? 'reduced' : failed ? 'fallback' : 'preparing'}>
-      <img src={OFFICIAL_LOGO} alt="" className={`water-logo-fallback ${ready ? 'invisible' : ''}`} />
+      <img src={logoMask} width={512} height={512} alt="" className={`water-logo-fallback ${ready ? 'invisible' : ''}`} />
       {!reduced && !failed && source && <iframe ref={frame} srcDoc={source} title="Machan Elements Water" sandbox="allow-scripts" aria-hidden="true" tabIndex={-1}
         className={`water-logo-frame ${ready ? 'opacity-100' : 'opacity-0'}`}
         onLoad={() => frame.current?.contentWindow?.postMessage({ type: 'machan-water-controls', paused: document.hidden }, '*')} />}

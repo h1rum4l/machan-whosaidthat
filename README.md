@@ -216,6 +216,8 @@ Run `npm run build` and deploy `dist/` to a static host. Supply the public `VITE
 
 <img src="docs/images/water-loader.jpg" alt="Official Machan lettering rendered with animated water on the mobile loading screen" width="280" />
 
-The interface uses Bangers for display type, Archivo for body text and custom SVG avatars. The Water loader adapts the Elements — Water source supplied for this project, replacing its original mark with the official Machan lettering. It pauses when the page is hidden and uses the original static logo when motion is reduced or WebGL is unavailable.
+The interface uses Bangers for display type, Archivo for body text and custom SVG avatars. The Water loader adapts the Elements — Water source supplied for this project, replacing its original mark with the official Machan lettering. It pauses when the page is hidden and uses static official lettering when motion is reduced or WebGL is unavailable.
+
+The shared display logo is a preloaded 512px WebP (about 42 KB), replacing a 1.78 MB download. The loader embeds its prepared lettering mask, so its initial logo does not wait for an image request or runtime canvas extraction. The original PNG remains the source asset. To regenerate delivery assets after changing it, run `python scripts/prepare-logo.py` with Pillow 13 or newer installed; Pillow is not needed to install, run or build the app.
 
 Third-party dependencies and supplied visual assets retain their respective terms. This repository does not assign a new license to those materials.

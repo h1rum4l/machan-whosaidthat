@@ -53,7 +53,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
     <div className="welcome-layout">
       <div className="welcome-intro">
         <img
-          src="/assets/aistudio/Untitled_Design__15__76563b80.png"
+          src="/assets/brand/machan-logo.webp"
+          width={144}
+          height={144}
+          fetchPriority="high"
           alt="Machan, Who Said That? Official Logo"
           className="w-24 h-24 border-[3px] border-ink object-cover sm:w-36 sm:h-36"
           referrerPolicy="no-referrer"

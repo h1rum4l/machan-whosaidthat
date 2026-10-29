@@ -1,0 +1,25 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Local design, agent and editor artifacts
+.aistudio/
+.taste-skill/
+.omx/
+.agents/
+.codex/
+.vscode/
+.idea/
+UI-REDESIGN-PLAN.md
+UI-REDESIGN-RESULTS.md
+
+# Backups and generated files
+*.zip
+*.tsbuildinfo
+supabase/.temp/
+supabase/.branches/

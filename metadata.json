@@ -1,0 +1,6 @@
+{
+  "name": "Machan, Who Said That?",
+  "description": "An in-person Sri Lankan party-comedy game for 3-10 friends who join one shared online room with a 6-digit code. Features 10 fast rounds of witty Singlish prompts, anonymous voting, dramatic reveals, and double points.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

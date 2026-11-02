@@ -7,7 +7,8 @@ Run, in order:
 1. `shared_game_fixture.sql` — installs only a minimal local starter/Auth fixture. It refuses an existing starter or Supabase Auth schema.
 2. `../migrations/202611030001_shared_game.sql` — the actual additive multiplayer migration.
 3. `../migrations/202611030002_answer_time_30_seconds.sql` — extends answering to 30 seconds, retaining 15-second voting.
-4. `shared_game.sql` — lifecycle/security assertions, wrapped in a transaction that rolls all test data back.
+4. `../migrations/202611030003_answer_limit_10_words.sql` — permits up to 10 words while retaining the 120-character cap.
+5. `shared_game.sql` — lifecycle/security assertions, wrapped in a transaction that rolls all test data back.
 
 If PGlite is already available locally, `node supabase/tests/run-shared-game.mjs /absolute/path/to/pglite/dist/index.js` runs those files in an isolated in-memory database and checks the rollback. The optional argument defaults to the ignored local QA runtime at `.taste-skill/pg-runtime/node_modules/@electric-sql/pglite/dist/index.js`. No runtime package is included in the application dependencies.
 

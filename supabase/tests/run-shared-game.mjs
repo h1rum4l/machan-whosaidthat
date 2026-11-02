@@ -11,6 +11,7 @@ try {
     'supabase/tests/shared_game_fixture.sql',
     'supabase/migrations/202611030001_shared_game.sql',
     'supabase/migrations/202611030002_answer_time_30_seconds.sql',
+    'supabase/migrations/202611030003_answer_limit_10_words.sql',
     'supabase/tests/shared_game.sql',
   ]) {
     await database.exec(await readFile(resolve(root, path), 'utf8'));

@@ -166,11 +166,11 @@ begin
           raise exception 'Answer without an expected round unexpectedly allowed';
         exception when invalid_parameter_value then null; end;
         begin
-          perform public.machan_game(room,'answer','One two three four five six seven',p_expected_round=>round_index);
+          perform public.machan_game(room,'answer','One two three four five six seven eight nine ten eleven',p_expected_round=>round_index);
           raise exception 'Overlong answer unexpectedly allowed';
         exception when invalid_parameter_value then null; end;
       end if;
-      host_state:=public.machan_game(room,'answer','Amma knows everything',p_expected_round=>round_index);
+      host_state:=public.machan_game(room,'answer','One two three four five six seven eight nine ten',p_expected_round=>round_index);
       perform pg_temp.check_game(jsonb_array_length(host_state->'answers')=0,'answers remain private during answering');
       if round_index=1 then
         begin

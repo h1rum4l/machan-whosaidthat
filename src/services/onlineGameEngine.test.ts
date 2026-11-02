@@ -132,7 +132,7 @@ test('actions send only room/action/input; phases and scores change only with th
   await pending;
   assert.deepEqual(f.calls.at(-1)!.body, { p_room_id: roomId, p_action: 'vote', p_text: null, p_target: answerId, p_expected_round: 1 });
   await assert.rejects(f.engine.castVote(hostId), /another player/);
-  await assert.rejects(f.engine.submitAnswer('one two three four five six seven'), /maximum 6 words/);
+  await assert.rejects(f.engine.submitAnswer('one two three four five six seven eight nine ten eleven'), /maximum 10 words/);
   for (const [method, expected] of [
     ['revealNextCard', 'reveal_next'], ['revealAllCards', 'reveal_all'], ['transitionToScoreboard', 'scoreboard'],
     ['advanceFromScoreboard', 'next'], ['rematch', 'rematch'],

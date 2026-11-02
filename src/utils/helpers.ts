@@ -35,6 +35,8 @@ export function countWords(text: string): number {
   return trimmed.split(/\s+/).length;
 }
 
+export const MAX_ANSWER_WORDS = 10;
+
 export function validateAnswer(text: string): {
   isValid: boolean;
   wordCount: number;
@@ -51,8 +53,8 @@ export function validateAnswer(text: string): {
   if (charCount > 120) {
     return { isValid: false, wordCount, charCount, error: 'Max 120 characters allowed!' };
   }
-  if (wordCount > 6) {
-    return { isValid: false, wordCount, charCount, error: 'Keep it punchy: maximum 6 words!' };
+  if (wordCount > MAX_ANSWER_WORDS) {
+    return { isValid: false, wordCount, charCount, error: `Keep it punchy: maximum ${MAX_ANSWER_WORDS} words!` };
   }
 
   return { isValid: true, wordCount, charCount };

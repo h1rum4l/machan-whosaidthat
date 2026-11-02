@@ -23,22 +23,20 @@ export function runGameLogicTests(): TestResult[] {
     message: test1Count === 5 ? '5 words counted accurately' : `Expected 5 words, got ${test1Count}`,
   });
 
-  // Test 2: Valid 6-word answer within 120 characters
-  const valid6Words = 'Bath kala shape eke ennam machan';
-  const val2 = validateAnswer(valid6Words);
+  // Test 2: Ten words are accepted within 120 characters.
+  const val2 = validateAnswer('one two three four five six seven eight nine ten');
   results.push({
-    name: '6-Word Answer Acceptance',
-    passed: val2.isValid && val2.wordCount === 6,
-    message: val2.isValid ? 'Valid 6 words accepted' : `Failed: ${val2.error}`,
+    name: '10-Word Answer Acceptance',
+    passed: val2.isValid && val2.wordCount === 10,
+    message: val2.isValid ? 'Valid 10 words accepted' : `Failed: ${val2.error}`,
   });
 
-  // Test 3: Exceeding 6 words rejection
-  const invalid7Words = 'Ado machan why are you so late today';
-  const val3 = validateAnswer(invalid7Words);
+  // Test 3: Eleven words exceed the limit.
+  const val3 = validateAnswer('one two three four five six seven eight nine ten eleven');
   results.push({
-    name: '7-Word Answer Rejection',
-    passed: !val3.isValid && (val3.error?.includes('6 words') || false),
-    message: !val3.isValid ? 'Correctly rejected > 6 words' : 'Should have rejected > 6 words',
+    name: '11-Word Answer Rejection',
+    passed: !val3.isValid && (val3.error?.includes('10 words') || false),
+    message: !val3.isValid ? 'Correctly rejected > 10 words' : 'Should have rejected > 10 words',
   });
 
   // Test 4: 120 Characters limit enforcement

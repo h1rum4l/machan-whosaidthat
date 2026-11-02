@@ -29,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   const handleToggleSound = () => {
     const next = soundService.toggleMute();
     setIsMuted(next);
+    if (!next) soundService.playSubmit();
   };
 
   return (

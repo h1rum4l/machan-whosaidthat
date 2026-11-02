@@ -20,6 +20,7 @@ import { VotingScreen } from './components/screens/VotingScreen';
 import { RevealScreen } from './components/screens/RevealScreen';
 import { ScoreboardScreen } from './components/screens/ScoreboardScreen';
 import { WinnerScreen } from './components/screens/WinnerScreen';
+import { useGameSounds } from './components/useGameSounds';
 
 const isDemo = import.meta.env.DEV && typeof window !== 'undefined'
   && new URLSearchParams(window.location.search).get('demo') === '1';
@@ -28,6 +29,7 @@ const gameEngine = isDemo ? mockGameEngine : onlineGameEngine;
 
 export default function App() {
   const [gameState, setGameState] = useState<MockGameState>(() => gameEngine.getState());
+  useGameSounds(gameState, !isDemo);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [isSupabaseReady, setIsSupabaseReady] = useState(() => isSupabaseConfigured());

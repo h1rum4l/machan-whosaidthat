@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { GamePrompt } from '../../types/game';
-import { validateAnswer } from '../../utils/helpers';
+import { MAX_ANSWER_WORDS, validateAnswer } from '../../utils/helpers';
 import { Send, CheckCircle2 } from 'lucide-react';
 
 interface QuestionScreenProps {
@@ -70,12 +70,12 @@ export const QuestionScreen: React.FC<QuestionScreenProps> = ({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <label htmlFor="answer-input" className="field-label">Your Funny Answer</label>
           <textarea id="answer-input" rows={3} maxLength={130}
-            placeholder="Keep it witty in English or Singlish! Max 6 words..."
+            placeholder={`Keep it witty in English or Singlish! Max ${MAX_ANSWER_WORDS} words...`}
             value={answer} onChange={(e) => setAnswer(e.target.value)}
             className="field resize-y" aria-describedby="answer-limits answer-error"
             aria-invalid={answer.length > 0 && !validation.isValid} autoFocus />
           <div id="answer-limits" className="flex flex-wrap items-center justify-between gap-2 text-sm font-semibold tabular-nums">
-            <span className={validation.wordCount > 6 ? 'text-danger' : ''}>{validation.wordCount}/6 words</span>
+            <span className={validation.wordCount > MAX_ANSWER_WORDS ? 'text-danger' : ''}>{validation.wordCount}/{MAX_ANSWER_WORDS} words</span>
             <span>{validation.charCount}/120 chars</span>
           </div>
           <div id="answer-error" aria-live="polite">

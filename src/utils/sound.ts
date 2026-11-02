@@ -3,35 +3,36 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-class SoundController {
+export class SoundController {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
 
   constructor() {
     // AudioContext will be initialized on first user interaction
-    const savedMute = localStorage.getItem('machan_muted');
-    if (savedMute) {
-      this.isMuted = savedMute === 'true';
-    }
+    try { this.isMuted = localStorage.getItem('machan_muted') === 'true'; }
+    catch { /* Storage can be unavailable in private browsing or server rendering. */ }
   }
 
   private getContext(): AudioContext | null {
-    if (this.isMuted) return null;
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (AudioCtx) {
+    if (this.isMuted || typeof window === 'undefined') return null;
+    try {
+      if (!this.ctx || this.ctx.state === 'closed') {
+        const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (!AudioCtx) return null;
         this.ctx = new AudioCtx();
       }
-    }
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-    return this.ctx;
+      if (this.ctx.state === 'suspended') void this.ctx.resume().catch(() => {});
+      return this.ctx;
+    } catch { return null; }
   }
+
+  // Call inside a real pointer/key gesture, before waiting for any network request.
+  public unlock(): void { this.getContext(); }
 
   public toggleMute(): boolean {
     this.isMuted = !this.isMuted;
-    localStorage.setItem('machan_muted', String(this.isMuted));
+    try { localStorage.setItem('machan_muted', String(this.isMuted)); } catch { /* Keep in-memory mute working. */ }
+    if (!this.isMuted) this.unlock();
     return this.isMuted;
   }
 

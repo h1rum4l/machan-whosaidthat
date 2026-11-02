@@ -36,10 +36,12 @@ Rooms contain **real players only**. A separate local bot demo is available only
 1. Pick a nickname and avatar, then host a room.
 2. Generate ten questions, or choose the fallback after an AI availability error.
 3. Start once questions are saved and the lobby meets the player requirement.
-4. Write a short answer, vote for someone else's answer, then reveal the authors.
+4. Write an answer of up to **10 words / 120 characters**, vote for someone else's answer, then reveal the authors.
 5. Check the scores, complete ten rounds and crown the winner. Round ten awards double points.
 
 Keep the host's browser open while playing. The host advances reveals and rounds. Refreshing players can re-enter their six-digit code using the same browser session to resume their existing membership. Closing a room through the host's leave button ends that room for everyone.
+
+Sound effects follow confirmed answers, votes, countdowns, reveals and the winner screen. Audio unlocks on your first click, tap or key press; the speaker button remembers your mute preference and plays a confirmation when unmuted. Repeated server polls do not replay sounds.
 
 ## Quick start
 

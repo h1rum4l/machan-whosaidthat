@@ -11,6 +11,7 @@ import { RoomQuestions } from '../RoomQuestions';
 import type { RoundQuestion } from '../../services/roomQuestions';
 
 interface LobbyScreenProps {
+  demoMode?: boolean;
   roomCode: string;
   roomId?: string;
   onQuestionsSaved?: (records: RoundQuestion[]) => void;
@@ -23,6 +24,7 @@ interface LobbyScreenProps {
 }
 
 export const LobbyScreen: React.FC<LobbyScreenProps> = ({
+  demoMode = false,
   roomCode,
   roomId,
   onQuestionsSaved,
@@ -49,7 +51,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
     <div className="game-screen">
       <section className="paper-panel text-center flex flex-col items-center gap-4" aria-label="Room invitation">
         <h1 className="text-2xl font-bold">Share With Friends (3–10 Players)</h1>
-        <p className="body-copy">Tell your machans to join using this 6-character code:</p>
+        <p className="body-copy">{demoMode ? 'Local demo code — this room is only on your device:' : 'Tell your machans to join using this six-digit code:'}</p>
         <div className="flex flex-wrap items-center justify-center gap-3 w-full">
           <span className="room-code select-all">
             {roomCode}
@@ -82,7 +84,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
               Party Lobby ({players.length}/10)
             </h2>
 
-          {import.meta.env.DEV && !isFull && (
+          {import.meta.env.DEV && demoMode && !isFull && (
             <button
               onClick={onAddMockPlayer}
               className="btn btn-secondary text-sm"
@@ -121,7 +123,7 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
                   </div>
                 </div>
 
-                {import.meta.env.DEV && isHost && p.isBot && players.length > 3 && (
+                {import.meta.env.DEV && demoMode && isHost && p.isBot && players.length > 3 && (
                   <button
                     onClick={() => onRemovePlayer(p.id)}
                     className="btn btn-secondary min-w-[44px] shrink-0"

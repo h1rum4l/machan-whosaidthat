@@ -8,6 +8,7 @@ import { Answer, GamePrompt } from '../../types/game';
 import { CheckCircle, Lock } from 'lucide-react';
 
 interface VotingScreenProps {
+  isSubmitting?: boolean;
   currentRound: number;
   totalRounds: number;
   prompt: GamePrompt;
@@ -20,6 +21,7 @@ interface VotingScreenProps {
 }
 
 export const VotingScreen: React.FC<VotingScreenProps> = ({
+  isSubmitting = false,
   currentRound,
   totalRounds = 10,
   prompt,
@@ -36,7 +38,7 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
   const isTimeCritical = timeLeft <= 5;
 
   const handleVote = (targetPlayerId: string) => {
-    if (hasVoted) return;
+    if (hasVoted || isSubmitting) return;
     if (targetPlayerId === currentPlayerId) return; // Prevent self-vote
     setSelectedTargetId(targetPlayerId);
     onCastVote(targetPlayerId);
@@ -63,9 +65,9 @@ export const VotingScreen: React.FC<VotingScreenProps> = ({
       <div className="flex flex-col gap-3">
         {answers.map((ans, idx) => {
           const isMyAnswer = ans.playerId === currentPlayerId;
-          const isSelected = selectedTargetId === ans.playerId;
+          const isSelected = hasVoted && selectedTargetId === ans.playerId;
           return (
-            <button key={ans.playerId} type="button" disabled={hasVoted || isMyAnswer}
+            <button key={ans.playerId} type="button" disabled={hasVoted || isSubmitting || isMyAnswer}
               onClick={() => handleVote(ans.playerId)} aria-pressed={isSelected}
               className={`answer-option ${isMyAnswer ? 'is-own' : ''} ${isSelected ? 'is-selected' : ''}`}>
               <span className="flex items-start gap-4 min-w-0">

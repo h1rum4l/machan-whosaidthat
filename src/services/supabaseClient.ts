@@ -4,6 +4,7 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import publicProject from '../config/supabase.public.json';
 
 // Read configuration from environment or browser storage
 export function getSavedSupabaseConfig(): { url: string; anonKey: string } {
@@ -11,13 +12,17 @@ export function getSavedSupabaseConfig(): { url: string; anonKey: string } {
   const envKey = (import.meta as unknown as { env: Record<string, string> }).env?.VITE_SUPABASE_PUBLISHABLE_KEY
     || (import.meta as unknown as { env: Record<string, string> }).env?.VITE_SUPABASE_ANON_KEY || '';
 
-  const localUrl = localStorage.getItem('machan_supabase_url') || '';
-  const localKey = localStorage.getItem('machan_supabase_key') || '';
-
-  return {
-    url: localUrl || envUrl,
-    anonKey: localKey || envKey,
-  };
+  // Public project identifiers are safe to ship; database access still requires Auth/RLS.
+  // Use a complete override pair so a URL cannot accidentally receive another project's key.
+  const configured = envUrl || envKey
+    ? { url: envUrl, anonKey: envKey }
+    : { url: publicProject.url, anonKey: publicProject.publishableKey };
+  if (import.meta.env.DEV && typeof localStorage !== 'undefined') {
+    const localUrl = localStorage.getItem('machan_supabase_url') || '';
+    const localKey = localStorage.getItem('machan_supabase_key') || '';
+    if (localUrl && localKey) return { url: localUrl, anonKey: localKey };
+  }
+  return configured;
 }
 
 export function saveSupabaseConfig(url: string, anonKey: string): void {

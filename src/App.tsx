@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { mockGameEngine, MockGameState } from './services/mockGameEngine';
+import { OnlineGameEngine } from './services/onlineGameEngine';
 import { getSupabaseClient, isSupabaseConfigured } from './services/supabaseClient';
-import { createSupabaseRoom } from './services/createRoom';
 import { AvatarId } from './types/game';
 import { Header } from './components/Header';
 import { MockDataBanner } from './components/MockDataBanner';
@@ -21,9 +21,13 @@ import { RevealScreen } from './components/screens/RevealScreen';
 import { ScoreboardScreen } from './components/screens/ScoreboardScreen';
 import { WinnerScreen } from './components/screens/WinnerScreen';
 
+const isDemo = import.meta.env.DEV && typeof window !== 'undefined'
+  && new URLSearchParams(window.location.search).get('demo') === '1';
+const onlineGameEngine = new OnlineGameEngine(getSupabaseClient);
+const gameEngine = isDemo ? mockGameEngine : onlineGameEngine;
 
 export default function App() {
-  const [gameState, setGameState] = useState<MockGameState>(() => mockGameEngine.getState());
+  const [gameState, setGameState] = useState<MockGameState>(() => gameEngine.getState());
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   const [isSupabaseReady, setIsSupabaseReady] = useState(() => isSupabaseConfigured());
@@ -33,14 +37,21 @@ export default function App() {
   const [loadingTitle, setLoadingTitle] = useState('Fun ekata ready da?');
   const [roomEntryError, setRoomEntryError] = useState('');
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const roomEntryBusy = useRef(false);
+  const actionBusy = useRef(false);
+  const finishLoading = useCallback(() => setIsLoading(false), []);
 
   useEffect(() => {
-    const unsubscribe = mockGameEngine.subscribe((updated) => {
+    const unsubscribe = gameEngine.subscribe((updated) => {
       setGameState(updated);
+    });
+    const unsubscribeErrors = isDemo ? () => {} : onlineGameEngine.subscribeError(error => {
+      setRoomEntryError(error.message);
     });
     return () => {
       unsubscribe();
+      unsubscribeErrors();
     };
   }, []);
 
@@ -48,36 +59,36 @@ export default function App() {
     setIsSupabaseReady(isSupabaseConfigured());
   };
 
-  const handleHostRoom = (nickname: string, avatar: AvatarId) => {
+  const enterRoom = async (nickname: string, avatar: AvatarId, code?: string) => {
     if (roomEntryBusy.current) return;
     roomEntryBusy.current = true;
     setIsCreatingRoom(true);
     setRoomEntryError('');
     setLoadingTitle('Fun ekata ready da?');
     setIsLoading(true);
-    setTimeout(async () => {
-      try {
-        const client = getSupabaseClient();
-        const savedRoom = client ? await createSupabaseRoom(client, nickname) : undefined;
-        mockGameEngine.createRoom(nickname, avatar, savedRoom);
-      } catch (cause) {
-        setRoomEntryError(cause instanceof Error ? cause.message : 'Could not create the room. Please try again.');
-        setIsLoading(false);
-      } finally {
-        roomEntryBusy.current = false;
-        setIsCreatingRoom(false);
-      }
-    }, 1200);
+    try {
+      if (code) await gameEngine.joinRoom(code, nickname, avatar);
+      else await gameEngine.createRoom(nickname, avatar);
+    } catch (cause) {
+      setRoomEntryError(cause instanceof Error ? cause.message : 'Could not enter the room. Please try again.');
+    } finally {
+      setIsLoading(false);
+      roomEntryBusy.current = false;
+      setIsCreatingRoom(false);
+    }
   };
 
-  const handleJoinRoom = (code: string, nickname: string, avatar: AvatarId) => {
+  const runAction = async (action: () => unknown) => {
+    if (actionBusy.current) return;
+    actionBusy.current = true;
+    setIsSyncing(true);
     setRoomEntryError('');
-    setLoadingTitle('Fun ekata ready da?');
-    setIsLoading(true);
-    setTimeout(() => {
-      mockGameEngine.joinRoom(code, nickname, avatar);
-    }, 1200);
+    try { await action(); }
+    catch (cause) { setRoomEntryError(cause instanceof Error ? cause.message : 'Could not sync the game. Please retry.'); }
+    finally { actionBusy.current = false; setIsSyncing(false); }
   };
+
+  const leaveRoom = () => runAction(() => gameEngine.leaveRoom());
 
   const { room, players, currentPlayerId, answers, roundResults, revealedIndex, timeLeft, totalTime, hasAnswered, hasVoted } = gameState;
   const isHost = room?.hostId === currentPlayerId;
@@ -89,7 +100,7 @@ export default function App() {
         isActive={isLoading}
         title={loadingTitle}
         durationMs={1500}
-        onFinished={() => setIsLoading(false)}
+        onFinished={finishLoading}
       />
 
       {/* Top Bar Contract Navigation */}
@@ -99,37 +110,42 @@ export default function App() {
         totalRounds={room?.totalRounds || 10}
         playerCount={players.length}
         onOpenSupabaseConfig={() => setIsSupabaseModalOpen(true)}
-        onLeaveRoom={() => mockGameEngine.leaveRoom()}
+        onLeaveRoom={leaveRoom}
       />
 
       {/* Simulator Mode Banner */}
       {import.meta.env.DEV && <MockDataBanner
-        isConfigured={isSupabaseReady}
+        isConfigured={!isDemo && isSupabaseReady}
+        networkStatus={isDemo ? 'mock' : 'online'}
         onOpenSupabaseConfig={() => setIsSupabaseModalOpen(true)}
       />}
 
       {/* Main Dynamic Viewport */}
-      <main className="app-main">
+      <main className="app-main" aria-busy={isSyncing || isCreatingRoom}>
         {roomEntryError && <p className="error-message max-w-xl mx-auto mb-6" role="alert">{roomEntryError}</p>}
+        {isDemo && <p className="status-message max-w-xl mx-auto" role="status">Local demo: these bots and room codes are only on this device.</p>}
+        {isSyncing && <p className="status-message max-w-xl mx-auto" role="status">Syncing game…</p>}
         {!room || room.state === 'welcome' ? (
           <WelcomeScreen
             isSubmitting={isCreatingRoom}
-            onHostRoom={handleHostRoom}
-            onJoinRoom={handleJoinRoom}
+            onHostRoom={(nickname, avatar) => void enterRoom(nickname, avatar)}
+            onJoinRoom={(code, nickname, avatar) => void enterRoom(nickname, avatar, code)}
+            demoMode={isDemo}
           />
         ) : room.state === 'lobby' ? (
           <LobbyScreen
             roomId={room.id}
-            onQuestionsSaved={(records) => mockGameEngine.setRoomQuestions(room.id, records.map((record) => ({
+            onQuestionsSaved={(records) => isDemo ? mockGameEngine.setRoomQuestions(room.id, records.map((record) => ({
               id: `${room.id}:${record.round_no}`,
               category: record.category,
               promptEnglish: record.question,
-            })))}
+            }))) : void runAction(() => onlineGameEngine.refresh())}
             roomCode={room.code}
             players={players}
             currentPlayerId={currentPlayerId}
             isHost={isHost}
-            onStartGame={() => mockGameEngine.startGame()}
+            onStartGame={() => void runAction(() => gameEngine.startGame())}
+            demoMode={isDemo}
             onAddMockPlayer={() => mockGameEngine.addMockMachan()}
             onRemovePlayer={(id) => mockGameEngine.removeMockMachan(id)}
           />
@@ -141,10 +157,12 @@ export default function App() {
             timeLeft={timeLeft}
             totalTime={totalTime}
             hasAnswered={hasAnswered}
-            onSubmitAnswer={(text) => mockGameEngine.submitAnswer(text)}
+            key={`question:${room.id}:${room.currentRound}`}
+            onSubmitAnswer={(text) => void runAction(() => gameEngine.submitAnswer(text))}
           />
         ) : room.state === 'voting' ? (
           <VotingScreen
+            isSubmitting={isSyncing}
             currentRound={room.currentRound}
             totalRounds={room.totalRounds}
             prompt={room.currentPrompt}
@@ -153,7 +171,8 @@ export default function App() {
             timeLeft={timeLeft}
             totalTime={totalTime}
             hasVoted={hasVoted}
-            onCastVote={(targetId) => mockGameEngine.castVote(targetId)}
+            key={`voting:${room.id}:${room.currentRound}`}
+            onCastVote={(targetId) => void runAction(() => gameEngine.castVote(targetId))}
           />
         ) : room.state === 'reveal' ? (
           <RevealScreen
@@ -162,9 +181,9 @@ export default function App() {
             roundResults={roundResults}
             revealedIndex={revealedIndex}
             isHost={isHost}
-            onRevealNext={() => mockGameEngine.revealNextCard()}
-            onRevealAll={() => mockGameEngine.revealAllCards()}
-            onGoToScoreboard={() => mockGameEngine.transitionToScoreboard()}
+            onRevealNext={() => void runAction(() => gameEngine.revealNextCard())}
+            onRevealAll={() => void runAction(() => gameEngine.revealAllCards())}
+            onGoToScoreboard={() => void runAction(() => gameEngine.transitionToScoreboard())}
           />
         ) : room.state === 'scoreboard' ? (
           <ScoreboardScreen
@@ -173,15 +192,15 @@ export default function App() {
             players={players}
             currentPlayerId={currentPlayerId}
             isHost={isHost}
-            onAdvance={() => mockGameEngine.advanceFromScoreboard()}
+            onAdvance={() => void runAction(() => gameEngine.advanceFromScoreboard())}
           />
         ) : room.state === 'winner' ? (
           <WinnerScreen
             players={players}
             currentPlayerId={currentPlayerId}
             isHost={isHost}
-            onRematch={() => mockGameEngine.rematch()}
-            onLeaveRoom={() => mockGameEngine.leaveRoom()}
+            onRematch={() => void runAction(() => gameEngine.rematch())}
+            onLeaveRoom={leaveRoom}
           />
         ) : null}
       </main>

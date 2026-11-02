@@ -27,16 +27,9 @@ Ten rounds. Short answers. Anonymous votes. Prompts about campus life, tuk-tuks,
 
 ### Current status
 
-This repository combines an interactive game prototype with authenticated Supabase host-room creation and question persistence.
+Independent devices share one authenticated Supabase game: the real host, member roster, answers, anonymous votes, reveals, scores and rematches. The server controls phase deadlines and awards points exactly once. Clients fetch a shared snapshot every second; no Realtime publication setup is needed.
 
-| Working with Supabase | Currently simulated in the browser |
-| --- | --- |
-| Existing or anonymous Auth session | Joining and the player roster |
-| Host room creation through `create_room` | Multiplayer answer/vote synchronization |
-| Host-authorized question generation | Round progression, scoring and realtime state |
-| Validated question storage in `public.rounds` | Mock players for local testing |
-
-**Independent devices do not yet share a complete live game.** The interface supports the intended 3–10-player flow; the remaining multiplayer backend is future work.
+Rooms contain **real players only**. A separate local bot demo is available only on the development server at `/?demo=1`; its codes cannot be used for online play.
 
 ## How to play
 
@@ -46,7 +39,7 @@ This repository combines an interactive game prototype with authenticated Supaba
 4. Write a short answer, vote for someone else's answer, then reveal the authors.
 5. Check the scores, complete ten rounds and crown the winner. Round ten awards double points.
 
-Development mode includes mock-player and game-test controls for local exploration. The join-code flow is part of the prototype; see the current-status table before planning a multi-device session.
+Keep the host's browser open while playing. The host advances reveals and rounds. Refreshing players can re-enter their six-digit code using the same browser session to resume their existing membership. Closing a room through the host's leave button ends that room for everyone.
 
 ## Quick start
 
@@ -58,7 +51,9 @@ cd machan-whosaidthat
 npm ci
 ```
 
-Copy `.env.example` to `.env.local`:
+The app includes its selected project's public URL and publishable key in `src/config/supabase.public.json`, so a Vercel build without environment variables still connects every visitor to the same backend. These public identifiers do not grant database access by themselves; Auth, private-table permissions and RPC membership checks enforce access.
+
+To use another Supabase project, copy `.env.example` to `.env.local`:
 
 ```powershell
 # PowerShell
@@ -83,7 +78,7 @@ npm run dev
 
 Open the URL Vite prints, normally `http://localhost:3000`. If that port is occupied, Vite selects another one. Restart the server after changing environment values.
 
-Without Supabase configuration, you can explore the local demo. Synthetic demo room IDs cannot generate or save online questions. The legacy `VITE_SUPABASE_ANON_KEY` variable is also supported.
+Supply both override values together; partial configuration fails rather than combining credentials from different projects. The legacy `VITE_SUPABASE_ANON_KEY` is also supported. Saved browser configuration applies only in development, so production visitors cannot accidentally use different projects. Local bot rooms are never a fallback for an online connection failure.
 
 ## Supabase setup
 
@@ -91,18 +86,22 @@ Without Supabase configuration, you can explore the local demo. Synthetic demo r
 
 Enable anonymous sign-in if players will not use an existing Auth session. The frontend reuses the current session and signs in anonymously only when needed.
 
-The project expects the starter database contract:
+Apply [the shared-game migration](supabase/migrations/202611030001_shared_game.sql) to the existing starter database. It adds private `machan_*` tables and authenticated game RPCs while preserving the original tables and `create_room` contract.
+
+The frontend creates or joins a shared game with:
 
 ```ts
-supabase.rpc('create_room', {
+supabase.rpc('machan_host_room', {
   p_nickname: nickname.trim(),
-  p_topic: 'mixed',
+  p_avatar: 'tuktuk',
 });
-
-// Result: [{ room_id: '<UUID>', room_code: '<six-digit string>' }]
+supabase.rpc('machan_join_room', {
+  p_code: '353441', p_nickname: nickname.trim(), p_avatar: 'lion',
+});
+// Both return the complete shared game snapshot.
 ```
 
-The RPC creates both the room and its host-player row. The frontend never directly inserts rooms or creates a second host player.
+`machan_host_room` calls the existing `create_room(p_nickname,p_topic)` internally, then creates the shared-game membership. Room identity is a UUID; the invitation is its six-digit code. Subsequent reads/actions use `machan_game`. Answer and vote commands carry the expected round, so delayed submissions cannot enter another round.
 
 | Resource | Expected contract |
 | --- | --- |
@@ -112,7 +111,7 @@ The RPC creates both the room and its host-player row. The frontend never direct
 | Round inserts | RLS permits the host to insert questions for their own lobby |
 | Round uniqueness | A unique constraint on `(room_id, round_no)` |
 
-The full starter schema and `create_room` RPC are **not included**. Provision that backend separately before using hosted rooms. [rounds_unique.sql](supabase/rounds_unique.sql) adds the round uniqueness index to an existing schema; inspect existing duplicates before applying it.
+The full starter schema and `create_room` RPC are **not included**. The shared-game migration assumes the existing starter `rooms`, `players` and `rounds` tables. New installations need that base schema first. [rounds_unique.sql](supabase/rounds_unique.sql) adds the round uniqueness index if the base schema lacks it; inspect existing duplicates before applying it.
 
 ### 2. Server-side Gemini configuration
 
@@ -125,7 +124,7 @@ In **Supabase → Edge Functions → Secrets**, set:
 
 An existing model secret overrides the code default. Model availability and access vary; consult [Google's model documentation](https://ai.google.dev/gemini-api/docs/models).
 
-**Keep Gemini keys and Supabase service-role keys out of client code and all `VITE_` variables.** Only the Supabase public URL and public client key belong in `.env.local`. Local environment files are ignored by Git.
+**Keep Gemini keys and Supabase service-role keys out of client code and all `VITE_` variables.** The versioned configuration contains only the public project URL and publishable client key. Local environment overrides are ignored by Git.
 
 ### 3. Deploy `generate-questions`
 
@@ -179,18 +178,22 @@ The host's authenticated client validates and inserts the records. It checks sav
 | `npm run build` | Build the frontend into `dist/` |
 | `npm run preview` | Preview the production frontend locally |
 
-Tests do not call deployed Supabase functions or spend Gemini quota. Edge Function tests mock its authentication context, database reads and Gemini HTTP responses; they do not verify Supabase's hosted auth wrapper. Frontend typechecking excludes Deno function sources. Check those separately with Deno and verify the deployed function against your backend.
+`npm test` does not call deployed Supabase functions or spend Gemini quota. Edge Function tests mock its authentication context, database reads and Gemini HTTP responses. Frontend typechecking excludes Deno function sources.
+
+[SQL lifecycle/security tests](supabase/tests/README.md) run the actual migration against a disposable PostgreSQL-compatible database, exercise all ten rounds and roll back test records. The opt-in `scripts/check-multiplayer-live.ts` check uses three independent authenticated clients against the configured project, saves fallback questions through host RLS, plays ten rounds, checks double points/rematch and closes its test room. It creates anonymous test users and requires `MACHAN_LIVE_TEST=1`; it is deliberately excluded from `npm test`.
 
 ```text
 src/
   components/           Shared controls and seven game screens
-  services/             Supabase services and local game engine
+  services/             Shared online engine, Supabase services and explicit local demo
   shaders/elements/     Water loader, logo mask and shader source
   types/                Game types
   utils/                Game helpers and sound
 supabase/
   functions/
     generate-questions/ Authenticated Gemini Edge Function and tests
+  migrations/           Shared multiplayer tables and authenticated game RPCs
+  tests/                SQL lifecycle and authorization checks
   rounds_unique.sql     Optional index for an existing rounds table
 docs/images/            README screenshots
 public/assets/          Official app logo

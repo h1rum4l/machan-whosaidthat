@@ -6,7 +6,7 @@ import { createElement } from 'react';
 import { createServer } from 'vite';
 
 test('the loader has visible, embedded official lettering before any effects or image requests', async () => {
-  const server = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
+  const server = await createServer({ server: { middlewareMode: true, hmr: false, watch: null }, appType: 'custom' });
   try {
     const { WaterLogo } = await server.ssrLoadModule('/src/shaders/elements/WaterLogo.tsx');
     const html = renderToStaticMarkup(createElement(WaterLogo));

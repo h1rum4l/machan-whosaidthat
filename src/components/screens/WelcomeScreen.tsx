@@ -11,12 +11,14 @@ import { Avatar } from '../Avatar';
 
 interface WelcomeScreenProps {
   isSubmitting?: boolean;
+  demoMode?: boolean;
   onHostRoom: (nickname: string, avatar: AvatarId) => void;
   onJoinRoom: (code: string, nickname: string, avatar: AvatarId) => void;
 }
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   isSubmitting = false,
+  demoMode = false,
   onHostRoom,
   onJoinRoom,
 }) => {
@@ -39,8 +41,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
     if (tab === 'join') {
       const cleanCode = code.trim().toUpperCase();
-      if (cleanCode.length !== 6) {
-        setError('Room code must be exactly 6 characters!');
+      if (demoMode ? cleanCode.length !== 6 : !/^\d{6}$/.test(cleanCode)) {
+        setError(demoMode ? 'Demo code must be exactly 6 characters.' : 'Enter the six-digit room code shared by your host.');
         return;
       }
       onJoinRoom(cleanCode, cleanNick, selectedAvatar);
@@ -65,7 +67,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           Machan,<br />Who Said That?
         </h1>
         <p className="body-copy max-w-md">
-          Join with 3–10 friends using a 6-character room code. Answer witty Singlish prompts, vote anonymously, and uncover who wrote what!
+          Join with 3–10 friends using a six-digit room code. Answer witty Singlish prompts, vote anonymously, and uncover who wrote what!
         </p>
         <p className="text-sm font-semibold">Official Sri Lankan Party Comedy Game</p>
       </div>
@@ -96,13 +98,15 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           {tab === 'join' && (
             <div className="flex flex-col gap-1.5">
               <label htmlFor="room-code-input" className="field-label">
-                6-Character Room Code
+                {demoMode ? 'Demo Room Code' : '6-Digit Room Code'}
               </label>
               <input
                 id="room-code-input"
                 type="text"
                 maxLength={6}
-                placeholder="e.g. 7K2M9X"
+                placeholder={demoMode ? 'e.g. 7K2M9X' : 'e.g. 353441'}
+                inputMode={demoMode ? 'text' : 'numeric'}
+                pattern={demoMode ? undefined : '[0-9]{6}'}
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 className="field text-center text-2xl tracking-[0.15em] uppercase"
@@ -119,7 +123,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             <input
               id="nickname-input"
               type="text"
-              maxLength={20}
+              maxLength={24}
               placeholder="e.g. Kasun, Shenali, Ado Podi"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
@@ -166,7 +170,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             disabled={isSubmitting}
             className="btn btn-primary w-full"
           >
-            <span>{isSubmitting ? 'Creating game room…' : tab === 'host' ? 'Create Game Room' : 'Enter Room'}</span>
+            <span>{isSubmitting ? (tab === 'host' ? 'Creating game room…' : 'Joining your host…') : tab === 'host' ? 'Create Game Room' : 'Enter Room'}</span>
             <ArrowRight className="w-5 h-5" aria-hidden="true" />
           </button>
         </form>

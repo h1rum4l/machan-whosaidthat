@@ -128,7 +128,7 @@ begin
 
   perform set_config('request.jwt.claim.sub',host_uid::text,true);
   state:=public.machan_game(room,'start');
-  perform pg_temp.check_game(state#>>'{room,state}'='question' and state->>'timeLeft'='20','server starts the answer deadline');
+  perform pg_temp.check_game(state#>>'{room,state}'='question' and state->>'timeLeft'='30' and state->>'totalTime'='30','server starts the 30-second answer deadline');
   perform pg_temp.check_game(state#>>'{room,currentPrompt,promptEnglish}'='What is your funniest Sri Lankan excuse number 1?','saved first question is used');
   update public.rounds set question='This changed after the game started' where room_id=room and round_no=1;
   state:=public.machan_game(room,'read');
@@ -226,6 +226,9 @@ begin
     state:=public.machan_game(room,'reveal_all',p_expected_round=>round_index);
     state:=public.machan_game(room,'scoreboard',p_expected_round=>round_index);
     state:=public.machan_game(room,'next',p_expected_round=>round_index);
+    if round_index<10 then
+      perform pg_temp.check_game(state->>'totalTime'='30' and state->>'timeLeft'='30','each new answer round gets 30 seconds');
+    end if;
   end loop;
   perform pg_temp.check_game(state#>>'{room,state}'='winner','all ten rounds reach the winner screen');
   perform pg_temp.check_game(not exists(select 1 from jsonb_array_elements(state->'players') p where (p->>'score')::integer<>10),'cumulative score includes one empty round and double final points');

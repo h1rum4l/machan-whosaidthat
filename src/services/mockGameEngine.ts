@@ -244,11 +244,11 @@ class MockGameEngine {
     this.state.revealedIndex = -1;
     this.state.hasAnswered = false;
     this.state.hasVoted = false;
-    this.state.totalTime = 20;
-    this.state.timeLeft = 20;
+    this.state.totalTime = 30;
+    this.state.timeLeft = 30;
 
     this.notify();
-    this.startTimer(20, () => {
+    this.startTimer(30, () => {
       this.transitionToVoting();
     });
   }
